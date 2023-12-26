@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from hello_world import app
+from LaunchTemplateAmiUpdate import app
 
 
 @pytest.fixture()
