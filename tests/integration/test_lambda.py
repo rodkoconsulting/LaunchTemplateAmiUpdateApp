@@ -9,6 +9,7 @@ class IntegrationTestHandlerCase(unittest.TestCase):
     def test_response(self):
         print("Testing calls from lambda function")
         path = Path(__file__).parent / "../../events/event.json"
+        source_version = "$Latest"
         with path.open as f:
             event = f.read()
         ami_id = app.extract_ami_id(event)
@@ -22,6 +23,10 @@ class IntegrationTestHandlerCase(unittest.TestCase):
         self.assertIsNotNone(instance_tags)
         launch_template_id = app.extract_launch_template_id(instance_tags)
         self.assertIsNotNone(launch_template_id)
+        creation_response = ec2_client.create_launch_template_version(LaunchTemplateId=launch_template_id,
+                                                                      SourceVersion=source_version,
+                                                                      LaunchTemplateData={"ImageId": ami_id})
+        self.assertIn("LaunchTemplateVersion", creation_response)
 
 
 if __name__ == '__main__':
