@@ -10,32 +10,90 @@ Globals:
   Function:
     Timeout: 3
 
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues:
+      - DEV
+      - PROD
+
 Resources:
-  HelloWorldFunction:
+  LaunchTemplateAmiUpdateFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: LaunchTemplateAmiUpdatePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - cloudwatch:ListMetrics
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:Describe*
+                  - elasticloadbalancing:Describe*
+                  - autoscaling:Describe*
+                  - ec2:CreateLaunchTemplateVersion
+                  - ec2:Describe*
+                Resource: '*'
+      RoleName: !Sub LaunchTemplateAmiUpdateFunctionRole_${Environment}
+
+
+  LaunchTemplateAmiUpdateFunction:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
     Properties:
       CodeUri: LaunchTemplateAmiUpdate/
+      Role: !GetAtt LaunchTemplateAmiUpdateFunctionRole.Arn
+      FunctionName: !Sub LaunchTemplateAmiUpdate_${Environment}
       Handler: app.lambda_handler
       Runtime: python3.11
       Architectures:
         - x86_64
       Events:
-        HelloWorld:
-          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+        Trigger:
+          Type: EventBridgeRule
           Properties:
-            Path: /hello
-            Method: get
+            RuleName: !Sub LaunchTemplateAmiUpdateEventBridgeRule_${Environment}
+            Pattern:
+              source:
+                - aws.ec2
+              detail-type:
+                - EC2 AMI State Change
+              detail:
+                state:
+                  - available
+            Target:
+              Id: !Sub FsxFileExpireFunction_${Environment}
+            InputTransformer:
+              InputPathsMap:
+                "ami": "$.detail.ImageId"
+                "state": "$.detail.State"
+                InputTemplate: |
+                  {
+                    "ami" : <ami>,
+                    "state" : <state>
+                  }
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
   # Find out more about other implicit resources you can reference within SAM
   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-  HelloWorldFunction:
-    Description: "Hello World Lambda Function ARN"
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
+  LaunchTemplateAmiUpdateFunction:
+    Description: "LaunchTemplateAmiUpdate Lambda Function ARN"
+    Value: !GetAtt LaunchTemplateAmiUpdateFunction.Arn
+  LaunchTemplateAmiUpdateFunctionRole:
     Description: "Implicit IAM Role created for Hello World function"
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+    Value: !GetAtt LaunchTemplateAmiUpdateFunctionRole.Arn
