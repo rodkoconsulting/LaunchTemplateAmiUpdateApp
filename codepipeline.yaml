@@ -42,6 +42,9 @@ Parameters:
   TestingStackName:
     Type: String
     Default: "LaunchTemplateAmiUpdateStack-Dev"
+  TestingEnvironment:
+    Type: String
+    Default: "DEV"
   TestingPipelineExecutionRole:
     Type: String
     Default: "arn:aws:iam::424371521123:role/aws-sam-cli-managed-dev-pipel-PipelineExecutionRole-iscM7MFQ9Hcs"
@@ -63,6 +66,9 @@ Parameters:
   ProdStackName:
     Type: String
     Default: "LaunchTemplateAmiUpdateStack-Prod"
+  ProdEnvironment:
+    Type: String
+    Default: "PROD"
   ProdPipelineExecutionRole:
     Type: String
     Default: "arn:aws:iam::424371521123:role/aws-sam-cli-managed-prod-pipe-PipelineExecutionRole-ZhsYpsXeU52t"
@@ -85,6 +91,9 @@ Parameters:
   FeatureGitBranch:
     Type: String
     Default: ""
+  ManualApprovalNotificationArn:
+    Type: String
+    Default: "arn:aws:sns:us-east-1:424371521123:CodePipelineApproval"
 
 Conditions:
   IsMainBranchPipeline: !Equals [!Ref FeatureGitBranch, ""]
@@ -275,6 +284,7 @@ Resources:
                       {"name": "ENV_TEMPLATE", "value": "packaged-test.yaml"},
                       {"name": "ENV_REGION", "value": "${TestingRegion}"},
                       {"name": "ENV_STACK_NAME", "value": "${TestingStackName}"},
+                      {"name": "ENV_ENVIRONMENT", "value": "${TestingEnvironment}"},
                       {"name": "ENV_PIPELINE_EXECUTION_ROLE", "value": "${TestingPipelineExecutionRole}"},
                       {"name": "ENV_CLOUDFORMATION_EXECUTION_ROLE", "value": "${TestingCloudFormationExecutionRole}"},
                       {"name": "ENV_BUCKET", "value": "${TestingArtifactBucket}"},
@@ -284,17 +294,17 @@ Resources:
                   - Name: BuildArtifactAsZip
                 RunOrder: 1
               # Uncomment the following step for running the integration tests
-              # - Name: IntegrationTest
-              #   ActionTypeId:
-              #     Category: Build
-              #     Owner: AWS
-              #     Provider: CodeBuild
-              #     Version: "1"
-              #   Configuration:
-              #     ProjectName: !Ref CodeBuildProjectIntegrationTest
-              #   InputArtifacts:
-              #     - Name: SourceCodeAsZip
-              #   RunOrder: 2
+              - Name: IntegrationTest
+                ActionTypeId:
+                  Category: Build
+                  Owner: AWS
+                  Provider: CodeBuild
+                  Version: "1"
+                Configuration:
+                  ProjectName: !Ref CodeBuildProjectIntegrationTest
+                InputArtifacts:
+                  - Name: SourceCodeAsZip
+                RunOrder: 2
           - !Ref AWS::NoValue
 
         - !If
@@ -302,20 +312,33 @@ Resources:
           - Name: DeployProd
             Actions:
               # uncomment this to have a manual approval step before deployment to production
-              # - Name: ManualApproval
-              #   ActionTypeId:
-              #    Category: Approval
-              #    Owner: AWS
-              #    Provider: Manual
-              #    Version: "1"
-              #   RunOrder: 1
+              - Name: ManualApproval
+                ActionTypeId:
+                  Category: Approval
+                  Owner: AWS
+                  Provider: Manual
+                  Version: "1"
+                Configuration:
+                  NotificationArn: !Ref ManualApprovalNotificationArn
+                RunOrder: 1
+              - Name: DeleteTestStack
+                ActionTypeId:
+                  Category: Deploy
+                  Owner: AWS
+                  Provider: CloudFormation
+                  Version: "1"
+                Configuration:
+                  ActionMode: DELETE_ONLY
+                  StackName: !Sub ${TestingStackName}
+                  RoleArn: !GetAtt PipelineStackCloudFormationExecutionRole.Arn
+                RunOrder: 2
               - Name: DeployProd
                 ActionTypeId:
                   Category: Build
                   Owner: AWS
                   Provider: CodeBuild
                   Version: "1"
-                RunOrder: 2 # keeping run order as 2 in case manual approval is enabled
+                RunOrder: 3 # keeping run order as 2 in case manual approval is enabled
                 Configuration:
                   ProjectName: !Ref CodeBuildProjectDeploy
                   EnvironmentVariables: !Sub |
@@ -323,6 +346,7 @@ Resources:
                       {"name": "ENV_TEMPLATE", "value": "packaged-prod.yaml"},
                       {"name": "ENV_REGION", "value": "${ProdRegion}"},
                       {"name": "ENV_STACK_NAME", "value": "${ProdStackName}"},
+                      {"name": "ENV_ENVIRONMENT", "value": "${ProdEnvironment}"},
                       {"name": "ENV_PIPELINE_EXECUTION_ROLE", "value": "${ProdPipelineExecutionRole}"},
                       {"name": "ENV_CLOUDFORMATION_EXECUTION_ROLE", "value": "${ProdCloudFormationExecutionExeRole}"},
                       {"name": "ENV_BUCKET", "value": "${ProdArtifactBucket}"},
@@ -458,7 +482,13 @@ Resources:
                 Effect: Allow
                 Resource:
                   Fn::Sub: ${PipelineArtifactsBucket.Arn}/*
-
+        - PolicyName: CodePipelineSnsPublishAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref ManualApprovalNotificationArn
         - PolicyName: CodePipelineCodeBuildAndCloudformationAccess
           PolicyDocument:
             Version: "2012-10-17"
@@ -479,10 +509,10 @@ Resources:
                     - !GetAtt CodeBuildProjectBuildAndPackage.Arn
                     - !Ref AWS::NoValue
                   # Uncomment the following step for running the integration tests
-                  # - !If
-                  #   - IsMainBranchPipeline
-                  #   - !GetAtt CodeBuildProjectIntegrationTest.Arn
-                  #   - !Ref AWS::NoValue
+                  - !If
+                    - IsMainBranchPipeline
+                    - !GetAtt CodeBuildProjectIntegrationTest.Arn
+                    - !Ref AWS::NoValue
                   - !If
                     - IsMainBranchPipeline
                     - !GetAtt CodeBuildProjectDeploy.Arn
@@ -502,6 +532,7 @@ Resources:
                   - "cloudformation:ValidateTemplate"
                 Resource:
                   - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}/*"
+                  - !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${TestingStackName}/*"
 
   # PipelineStackCloudFormationExecutionRole is used for the pipeline to self mutate
   PipelineStackCloudFormationExecutionRole:
@@ -660,20 +691,20 @@ Resources:
         BuildSpec: pipeline/buildspec_build_package.yml
 
   # Uncomment and modify the following step for running the integration tests
-  # CodeBuildProjectIntegrationTest:
-  #   Condition: IsMainBranchPipeline
-  #   Type: AWS::CodeBuild::Project
-  #   Properties:
-  #     Artifacts:
-  #       Type: CODEPIPELINE
-  #     Environment:
-  #       Type: LINUX_CONTAINER
-  #       ComputeType: BUILD_GENERAL1_SMALL
-  #       Image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
-  #     ServiceRole: !GetAtt CodeBuildServiceRole.Arn
-  #     Source:
-  #       Type: CODEPIPELINE
-  #       BuildSpec: pipeline/buildspec_integration_test.yml
+  CodeBuildProjectIntegrationTest:
+    Condition: IsMainBranchPipeline
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+      ServiceRole: !GetAtt CodeBuildServiceRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: pipeline/buildspec_integration_test.yml
 
   CodeBuildProjectDeploy:
     Condition: IsMainBranchPipeline
