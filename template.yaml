@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   LaunchTemplateAmiUpdateApp
 
-  Sample SAM Template for LaunchTemplateAmiUpdateApp
+  Sample SAM Template for LaunchTemplateAmiUpdateApp 
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -81,11 +81,11 @@ Resources:
               InputPathsMap:
                 "ami": "$.detail.ImageId"
                 "state": "$.detail.State"
-                InputTemplate: |
-                  {
-                    "ami" : <ami>,
-                    "state" : <state>
-                  }
+              InputTemplate: |
+                {
+                  "ami" : <ami>,
+                  "state" : <state>
+                }
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
