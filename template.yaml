@@ -102,13 +102,29 @@ Resources:
       Subscription:
         - Endpoint: itadmin@polanerselections.com
           Protocol: email
+
+  LaunchTemplateAmiUpdateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub LaunchTemplateAmiUpdateAlarm_${Environment}
+      AlarmDescription: Error alarm for LaunchTemplateAmiUpdateFunction
+      AlarmActions:
+        - !Ref LaunchTemplateAmiUpdateErrorTopic
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LaunchTemplateAmiUpdateFunction
+      Statistic: Sum
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 0
+      Period: 60
+      EvaluationPeriods: 1
+
 Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
   LaunchTemplateAmiUpdateFunction:
     Description: "LaunchTemplateAmiUpdate Lambda Function ARN"
     Value: !GetAtt LaunchTemplateAmiUpdateFunction.Arn
   LaunchTemplateAmiUpdateFunctionRole:
-    Description: "Implicit IAM Role created for Hello World function"
+    Description: "Implicit IAM Role created for LaunchTemplateAmiUpdate function"
     Value: !GetAtt LaunchTemplateAmiUpdateFunctionRole.Arn
