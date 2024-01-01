@@ -76,7 +76,7 @@ Resources:
                 state:
                   - available
             Target:
-              Id: !Sub FsxFileExpireFunction_${Environment}
+              Id: !Sub LaunchTemplateAmiUpdateFunction_${Environment}
             InputTransformer:
               InputPathsMap:
                 "ami": "$.detail.ImageId"
@@ -86,6 +86,15 @@ Resources:
                   "ami" : <ami>,
                   "state" : <state>
                 }
+
+  LaunchTemplateAmiUpdateFunctionInvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Sub LaunchTemplateAmiUpdateFunction_${Environment}
+      Principal: events.amazonaws.com
+      SourceArn: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/LaunchTemplateAmiUpdateEventBridgeRule_${Environment}"
+
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
