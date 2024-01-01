@@ -89,6 +89,7 @@ Resources:
 
   LaunchTemplateAmiUpdateFunctionInvocationPermission:
     Type: AWS::Lambda::Permission
+    DependsOn: LaunchTemplateAmiUpdateFunction
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !Sub LaunchTemplateAmiUpdateFunction_${Environment}
