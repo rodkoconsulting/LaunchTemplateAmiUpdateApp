@@ -57,7 +57,7 @@ Resources:
     Properties:
       CodeUri: LaunchTemplateAmiUpdate/
       Role: !GetAtt LaunchTemplateAmiUpdateFunctionRole.Arn
-      FunctionName: !Sub LaunchTemplateAmiUpdate_${Environment}
+      FunctionName: !Sub LaunchTemplateAmiUpdateFunction_${Environment}
       Handler: app.lambda_handler
       Runtime: python3.11
       Architectures:
