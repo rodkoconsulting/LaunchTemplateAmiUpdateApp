@@ -121,6 +121,12 @@ Resources:
       Period: 60
       EvaluationPeriods: 1
 
+  LaunchTemplateAmiUpdateLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LaunchTemplateAmiUpdateFunction}
+      RetentionInDays: 7
+
 Outputs:
   LaunchTemplateAmiUpdateFunction:
     Description: "LaunchTemplateAmiUpdate Lambda Function ARN"
