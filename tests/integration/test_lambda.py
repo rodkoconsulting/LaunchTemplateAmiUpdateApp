@@ -10,7 +10,7 @@ class IntegrationTestHandlerCase(unittest.TestCase):
         print("Testing calls from lambda function")
         path = Path(__file__).parent / "../../events/event.json"
         source_version = "$Latest"
-        with path.open as f:
+        with path.open() as f:
             event = f.read()
         ami_id = app.extract_ami_id(event)
         self.assertIs(ami_id, event["ami"])
