@@ -1,5 +1,6 @@
 import boto3
 
+
 IMAGE_NAME_KEY = 'Name'
 LAUNCH_TEMPLATE_KEY = 'aws:ec2launchtemplate:id'
 
@@ -47,6 +48,7 @@ def extract_launch_template_id(instance_tags):
         (item['Value'] for item in instance_tags if item['Key'] == LAUNCH_TEMPLATE_KEY), None)
     if not launch_template_id:
         raise Exception(f"Launch template not not found in instance tags")
+    return launch_template_id
 
 
 def handle_errors(action):
