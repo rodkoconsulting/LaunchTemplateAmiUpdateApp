@@ -608,6 +608,14 @@ Resources:
                 Condition:
                   StringEquals:
                     aws:ResourceTag/Role: pipeline-execution-role
+        - PolicyName: CodeBuildEc2Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ec2:DescribeImages"
+                Resource: "*"
 
   # Uncomment and modify the following step for running the unit-tests
   # CodeBuildProjectUnitTest:
