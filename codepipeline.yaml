@@ -615,6 +615,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "ec2:DescribeImages"
+                  - "ec2:DescribeInstances"
                 Resource: "*"
 
   # Uncomment and modify the following step for running the unit-tests
