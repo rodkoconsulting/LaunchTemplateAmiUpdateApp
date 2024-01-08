@@ -1,6 +1,7 @@
 import unittest
 from LaunchTemplateAmiUpdate import app
 from pathlib import Path
+import json
 import boto3
 
 
@@ -11,7 +12,8 @@ class IntegrationTestHandlerCase(unittest.TestCase):
         path = Path(__file__).parent / "../../events/event.json"
         source_version = "$Latest"
         with path.open() as f:
-            event = f.read()
+            event_str = f.read()
+        event = json.loads(event_str)
         ami_id = app.extract_ami_id(event)
         self.assertIs(ami_id, event["ami"])
         ec2_client = app.create_ec2_client()
