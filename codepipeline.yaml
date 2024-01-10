@@ -616,6 +616,7 @@ Resources:
                 Action:
                   - "ec2:DescribeImages"
                   - "ec2:DescribeInstances"
+                  - "ec2:CreateLaunchTemplateVersion"
                 Resource: "*"
 
   # Uncomment and modify the following step for running the unit-tests
