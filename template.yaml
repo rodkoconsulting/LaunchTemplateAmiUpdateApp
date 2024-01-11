@@ -73,7 +73,7 @@ Resources:
               detail-type:
                 - EC2 AMI State Change
               detail:
-                state:
+                State:
                   - available
             Target:
               Id: !Sub LaunchTemplateAmiUpdateFunction_${Environment}
