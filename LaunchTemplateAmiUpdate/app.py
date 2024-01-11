@@ -62,12 +62,19 @@ def handle_errors(action):
 def update_launch_template(event, source_version):
     if event["state"] != "available":
         return
+    print('create ec2_client')
     ec2_client = create_ec2_client()
+    print('extract_ami_id')
     ami_id = extract_ami_id(event)
+    print('fetch_ami_image')
     ami_image = fetch_ami_image(ec2_client, ami_id)
+    print('extract_ami_name_tag')
     ami_tag = extract_ami_name_tag(ami_image)
+    print('fetch_instance_tags')
     instance_tags = fetch_instance_tags(ec2_client, ami_tag)
+    print('fetch_instance_tags')
     launch_template_id = extract_launch_template_id(instance_tags)
+    print('create_launch_template_version')
     ec2_client.create_launch_template_version(LaunchTemplateId=launch_template_id, SourceVersion=source_version,
                                               LaunchTemplateData={"ImageId": ami_id})
 
