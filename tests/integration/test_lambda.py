@@ -2,8 +2,6 @@ import unittest
 from LaunchTemplateAmiUpdate import app
 from pathlib import Path
 import json
-import boto3
-
 
 class IntegrationTestHandlerCase(unittest.TestCase):
 
